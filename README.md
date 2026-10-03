@@ -23,7 +23,7 @@ admins cap it) on dedicated servers.
 | API | Fabric API |
 | VR | Vivecraft (PCVR) — desktop Java only (QuestCraft has no build past MC 1.21.5) |
 | Optional | Mod Menu + Cloth Config — enables the in-game settings screen |
-| Optional | **ViveMonke server mod** — only for **dedicated** servers |
+| Optional | [**ViveMonke server mod**](https://github.com/laggyboi20-jpg/ViveMonkeCraft-Server) — only for **dedicated** servers |
 
 The mod is client-only (`environment: client`). It does nothing without Vivecraft active
 except render other players without legs. Vivecraft itself is **not** bundled — it is
@@ -34,6 +34,14 @@ reached at runtime by reflection, so the mod loads fine with or without it.
 ## Configuring
 
 Configure it three ways: the **Mod Menu → ViveMonkeCraft** button opens the Cloth Config screen (needs Mod Menu **and** Cloth Config installed); the **`/vmc`** client command (`/vmc`, `/vmc reload`, `/vmc set <setting> <value>`); or by editing **`config/vivemonkecraft.properties`** directly.
+
+---
+
+## Multiplayer / server mod
+
+On a **dedicated** server ViveMonkeCraft stays **off** until the server runs the companion mod [ViveMonkeCraft-Server](https://github.com/laggyboi20-jpg/ViveMonkeCraft-Server). This is intentional (server-side opt-in); the server mod also lets admins cap or disable it. Singleplayer and LAN worlds need nothing.
+
+- **Minecraft 1.21.7:** no server build has been published yet. Check [all server releases](https://github.com/laggyboi20-jpg/ViveMonkeCraft-Server/releases) for the versions that exist.
 
 ---
 
