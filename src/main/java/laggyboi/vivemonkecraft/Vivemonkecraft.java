@@ -6,5 +6,6 @@ public class Vivemonkecraft implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        ModItems.register();
     }
 }

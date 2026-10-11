@@ -267,6 +267,28 @@ public final class MovementConfig {
     // true/false.
     public static boolean magmaTouchDamage = true;
 
+    // HOVERBOARD (hold the Hoverboard item in either hand). The board works like a
+    // joystick: it thrusts out of its underside, so tilting it 45° forward drives
+    // you forward, tilting it sideways drives you sideways, and holding it level
+    // just hovers. Speed-based physics only — it does nothing in GT-Physics mode.
+    public static boolean hoverboardEnabled = true;
+    // Gap kept between your feet and the ground (blocks). Max 0.5: above that,
+    // servers treat you as flying.
+    public static double hoverHeight = 0.4;
+    // Push added per tick at full tilt (45° or more), blocks/tick².
+    public static double hoverAccel = 0.035;
+    // Top board speed (blocks/tick). 0.7 = 14 blocks/sec.
+    public static double hoverMaxSpeed = 0.7;
+    // Speed kept each tick while riding. 1.0 = no drag, 0.9 = stops quickly.
+    public static double hoverDrag = 0.98;
+    // Tilt ignored around level (sine of the angle). 0.12 ≈ 7°.
+    public static double hoverDeadzone = 0.12;
+    // Minimum speed (blocks/tick) to start riding a wall. 0.45 = 9 blocks/sec.
+    public static double hoverWallRideSpeed = 0.45;
+    // Degrees added to the controller's pitch before reading tilt, so "level" can
+    // match how you naturally hold the controller. + tips the board's nose down.
+    public static double hoverTiltOffset = 0.0;
+
 
     // NOTE: presets live in ModMenuIntegration (the Mod Menu config screen) — the
     // old in-class preset system was unused and has been removed.
@@ -353,6 +375,14 @@ public final class MovementConfig {
         punchMiningThreshold = 0.08;
         punchMiningNoTool   = false;
         magmaTouchDamage    = true;
+        hoverboardEnabled   = true;
+        hoverHeight         = 0.4;
+        hoverAccel          = 0.035;
+        hoverMaxSpeed       = 0.7;
+        hoverDrag           = 0.98;
+        hoverDeadzone       = 0.12;
+        hoverWallRideSpeed  = 0.45;
+        hoverTiltOffset     = 0.0;
     }
 
     // Reads the file into the fields above. Safe to call repeatedly. Never throws.
@@ -416,6 +446,14 @@ public final class MovementConfig {
                     punchMiningNoTool   = parseB(p, "punchMiningNoTool",   punchMiningNoTool);
                     magmaTouchDamage    = parseB(p, "magmaTouchDamage",    magmaTouchDamage);
                     clampHandModels     = parseB(p, "clampHandModels",     clampHandModels);
+                    hoverboardEnabled   = parseB(p, "hoverboardEnabled",   hoverboardEnabled);
+                    hoverHeight         = parseD(p, "hoverHeight",         hoverHeight);
+                    hoverAccel          = parseD(p, "hoverAccel",          hoverAccel);
+                    hoverMaxSpeed       = parseD(p, "hoverMaxSpeed",       hoverMaxSpeed);
+                    hoverDrag           = parseD(p, "hoverDrag",           hoverDrag);
+                    hoverDeadzone       = parseD(p, "hoverDeadzone",       hoverDeadzone);
+                    hoverWallRideSpeed  = parseD(p, "hoverWallRideSpeed",  hoverWallRideSpeed);
+                    hoverTiltOffset     = parseD(p, "hoverTiltOffset",     hoverTiltOffset);
                 }
             } else {
                 // FIRST RUN — no config file yet. Start from the curated Default
@@ -617,7 +655,26 @@ public final class MovementConfig {
             sb.append("# Punch mining without the matching tool (any item / bare hands). true/false.\n");
             sb.append("punchMiningNoTool=").append(punchMiningNoTool).append("\n\n");
             sb.append("# Grabbing a magma block (any face) hurts you like standing on it. true/false.\n");
-            sb.append("magmaTouchDamage=").append(magmaTouchDamage).append("\n");
+            sb.append("magmaTouchDamage=").append(magmaTouchDamage).append("\n\n");
+
+            sb.append("# HOVERBOARD (hold the Hoverboard item). Tilt the board like a joystick:\n");
+            sb.append("# it pushes out of its underside, so 45 degrees forward = full speed ahead.\n");
+            sb.append("# Speed-based physics only (does nothing in GT-Physics). true/false.\n");
+            sb.append("hoverboardEnabled=").append(hoverboardEnabled).append("\n");
+            sb.append("# Gap between feet and ground (blocks). Max 0.5 (servers kick flyers).\n");
+            sb.append("hoverHeight=").append(hoverHeight).append("\n");
+            sb.append("# Push per tick at full tilt (blocks/tick^2).\n");
+            sb.append("hoverAccel=").append(hoverAccel).append("\n");
+            sb.append("# Top board speed (blocks/tick). 0.7 = 14 blocks/sec.\n");
+            sb.append("hoverMaxSpeed=").append(hoverMaxSpeed).append("\n");
+            sb.append("# Speed kept per tick while riding. 1.0 = no drag, 0.9 = stops fast.\n");
+            sb.append("hoverDrag=").append(hoverDrag).append("\n");
+            sb.append("# Tilt ignored around level (sine of angle). 0.12 = about 7 degrees.\n");
+            sb.append("hoverDeadzone=").append(hoverDeadzone).append("\n");
+            sb.append("# Speed needed to start riding a wall (blocks/tick). 0.45 = 9 blocks/sec.\n");
+            sb.append("hoverWallRideSpeed=").append(hoverWallRideSpeed).append("\n");
+            sb.append("# Degrees added to controller pitch so 'level' matches your grip.\n");
+            sb.append("hoverTiltOffset=").append(hoverTiltOffset).append("\n");
 
             Files.writeString(path, sb.toString());
         } catch (Exception e) {

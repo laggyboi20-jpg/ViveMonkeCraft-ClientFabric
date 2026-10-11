@@ -146,6 +146,7 @@ public class GorillaLocomotionHandler {
     private final VivecraftBridge vr = new VivecraftBridge();
     private final HandState mainHand = new HandState();
     private final HandState offHand  = new HandState();
+    private final HoverboardHandler hoverboard = new HoverboardHandler();
 
     // Rolling average of the intended swing velocity (blocks/tick), used for the
     // throw/jump when you let go.
@@ -435,6 +436,14 @@ public class GorillaLocomotionHandler {
 
         ensureSwingHistory();
 
+        // ---- HOVERBOARD ----
+        // The hand holding a board steers it instead of grabbing (speed-based
+        // physics only; probe() returns null in GT mode, leaving both hands normal).
+        InteractionHand boardHand = hoverboard.probe(client, player, vr);
+        boolean boardMain = boardHand == InteractionHand.MAIN_HAND;
+        boolean boardOff  = boardHand == InteractionHand.OFF_HAND;
+        boolean riding    = hoverboard.isRiding();
+
         // ---- PHYSICS MODE DISPATCH ----
         // gtPhysics=true  → faithful Gorilla Tag anchor physics (Player.cs port)
         // gtPhysics=false → the original speed-based model below
@@ -447,8 +456,10 @@ public class GorillaLocomotionHandler {
         } else {
 
         // ---- PER-HAND SWING -> VELOCITY ----
-        Vec3 mainVel = processHand(client, mainHand, touchMain, swingMain, headPos, fallSpeed, topFaceMain);
-        Vec3 offVel  = processHand(client, offHand,  touchOff,  swingOff,  headPos, fallSpeed, topFaceOff);
+        Vec3 mainVel = boardMain ? holdingBoard(mainHand)
+                     : processHand(client, mainHand, touchMain, swingMain, headPos, fallSpeed, topFaceMain);
+        Vec3 offVel  = boardOff  ? holdingBoard(offHand)
+                     : processHand(client, offHand,  touchOff,  swingOff,  headPos, fallSpeed, topFaceOff);
 
         // ---- FALL ABSORPTION: first floor contact while falling fast zeroes downward vel ----
         // When you extend your hand toward the ground during a fall, the first tick
@@ -559,6 +570,10 @@ public class GorillaLocomotionHandler {
         double  grabIceSpeedCap = grabOnIce ? effMaxSpd * grabIceMult : 0.0;
 
         // ---- APPLY ----
+        // Whether the velocity was SET this tick (grip or throw) rather than carried
+        // over through vanilla's drag — the hoverboard needs to know which.
+        boolean velocityFresh = anyGrip;
+
         if (anyGrip) {
             // While gripping (climbing OR sliding) you're in control — never take fall
             // damage from the descent. Resetting each tick means that if you LET GO,
@@ -730,7 +745,8 @@ public class GorillaLocomotionHandler {
             // leaving only g*0.08 net gravity. We only do this in the air (onGround
             // handles stopping the fall naturally) and only when g < 1.
             double g = MovementConfig.gravityMultiplier;
-            if (g < 1.0 && !player.onGround()) {
+            // (The hoverboard handles its own drag and gravity while riding.)
+            if (g < 1.0 && !player.onGround() && !riding) {
                 double counterGrav = 0.08 * (1.0 - g);
                 Vec3 v = player.getDeltaMovement();
                 player.setDeltaMovement(v.x, v.y + counterGrav, v.z);
@@ -745,6 +761,7 @@ public class GorillaLocomotionHandler {
                 }
                 player.setDeltaMovement(throwVel);
                 threw = true;
+                velocityFresh = true;
             }
 
             // GROUND FRICTION: damp horizontal speed when standing on the ground.
@@ -754,7 +771,7 @@ public class GorillaLocomotionHandler {
             //   Normal surface   → groundFriction × floorStickiness,
             //     floorStickiness 1.0 = full friction (stops fast)
             //     floorStickiness 0.0 = frictionless (same feel as ice)
-            if (!threw && player.onGround()) {
+            if (!threw && player.onGround() && !riding) {
                 double effectiveFriction = onIce
                         ? 1.0   // zero friction — no damping at all
                         : Math.max(0.0, Math.min(1.0,
@@ -783,7 +800,7 @@ public class GorillaLocomotionHandler {
             //   af=0.5  → compensate=0.91^(-0.5)≈1.048  (partial cancel — longer throws)
             //   af=0.0  → compensate=0.91^(-1) ≈1.099  (full cancel — throws carry forever)
             double af = MovementConfig.airFriction;
-            if (af < 1.0 && !player.onGround()) {
+            if (af < 1.0 && !player.onGround() && !riding) {
                 double compensate = Math.pow(0.91, af - 1.0);
                 Vec3 v = player.getDeltaMovement();
                 player.setDeltaMovement(v.x * compensate, v.y, v.z * compensate);
@@ -797,11 +814,19 @@ public class GorillaLocomotionHandler {
             // Skip the launch step boost on ice (the push-off path handles movement)
             // and skip it entirely if the blocking a block ahead is a barrier.
             if (MovementConfig.stepAssist && !player.onGround()
-                    && !onIce && !grabOnIce) {
+                    && !onIce && !grabOnIce && !riding) {
                 applyLaunchStepBoost(client, player);
             }
         }
         wasAnyGripping = anyGrip;
+
+        // ---- HOVERBOARD RIDE ----
+        // Layered on top of any free-hand push. Riding counts as "gripping" for fall
+        // damage, so the dedicated-server keepalive covers it too.
+        if (boardHand != null && hoverboard.apply(player, velocityFresh)) {
+            grippingThisTick = true;
+            suppressServerFall(client);
+        }
 
         } // end of speed-based physics (gtPhysics=false)
 
@@ -1322,6 +1347,12 @@ public class GorillaLocomotionHandler {
 
         // Body moves OPPOSITE to the swing, scaled by pull strength.
         return swing.scale(-MovementConfig.pullStrength);
+    }
+
+    // The hand holding a hoverboard steers it and never grabs.
+    private static Vec3 holdingBoard(HandState state) {
+        state.release();
+        return Vec3.ZERO;
     }
 
     // -----------------------------------------------------------------------

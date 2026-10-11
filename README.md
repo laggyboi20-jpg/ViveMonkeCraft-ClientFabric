@@ -55,6 +55,28 @@ The mod is `environment: client`. It does nothing without Vivecraft/QuestCraft a
 
 ---
 
+## Hoverboard
+
+A **Hoverboard** item you hold in either hand (hotbar or off-hand slot). It is not a
+movement mode; just equip it and ride.
+
+- **Joystick tilt**: the board pushes out of its underside. Hold it level to hover,
+  tilt it 45° forward for full speed ahead, tilt it sideways to strafe.
+- **Hovers** a little above the ground (max 0.5 blocks so servers don't see it as
+  flying), rises over 1-block steps, and skims water.
+- **Wall riding**: once you're going fast enough, turn the board's underside toward a
+  wall to ride along it. Slow down and you drop off.
+- Your free hand still works: push off the ground to boost or jump.
+- Other players see it in your hand like any held item.
+- **Get one**: Tools & Utilities creative tab, or craft it:
+  `phantom membrane ×3` on top, `iron ingot, redstone, iron ingot` below.
+- Speed-based physics only; it does nothing in GT-Physics mode. Tunable on the
+  **Hoverboard** page of the config screen.
+- Singleplayer and LAN for now. On dedicated servers the item needs the companion
+  server mod to register it too.
+
+---
+
 ## Ice
 
 - Ice is slippery on **every** face: push off ice walls for momentum, but you can't

@@ -22,6 +22,8 @@ import java.lang.reflect.Method;
  *   <li>{@code VRPlayer#vrdata_world_render}— VRData snapshot used for rendering
  *   <li>{@code VRData#hmd / c0 / c1}        — head / main hand / off-hand device poses
  *   <li>{@code VRDevicePose#getPosition()}  — world-space Vec3 position
+ *   <li>{@code VRDevicePose#getCustomVector(Vector3fc)} — controller-local axis in world
+ *       space (hoverboard tilt; wired lazily so a failure never breaks positions)
  * </ul>
  */
 public final class VivecraftBridge {
@@ -96,6 +98,47 @@ public final class VivecraftBridge {
     public Vec3 getHeadPos() {
         if (tryWire() == Link.LEGACY) return legacyPosition(fHmd);
         return null;
+    }
+
+    // -----------------------------------------------------------------------
+    // Controller orientation (hoverboard tilt). Wired separately from the core
+    // position API, like teleport-aim below, so a missing method can only
+    // disable the hoverboard — never locomotion.
+    // -----------------------------------------------------------------------
+
+    private boolean axisTried  = false;
+    private boolean axisBroken = false;
+    private Method  mGetCustomVector;      // VRDevicePose#getCustomVector(Vector3fc) → Vector3f
+
+    /**
+     * The given controller-local axis expressed in world space, for the main
+     * ({@code main=true}) or off-hand controller. Null if VR/Vivecraft can't
+     * provide it. Vivecraft's controller frame: +Y up out of the controller's
+     * top, -Z along its pointing direction.
+     */
+    public Vec3 getHandAxis(boolean main, double x, double y, double z) {
+        if (tryWire() != Link.LEGACY || axisBroken) return null;
+        try {
+            if (!axisTried) {
+                axisTried = true;
+                Class<?> pose = Class.forName("org.vivecraft.client_vr.VRData$VRDevicePose");
+                mGetCustomVector = pose.getMethod("getCustomVector", org.joml.Vector3fc.class);
+            }
+            Object vrPlayer = mVrPlayerGet.invoke(null);
+            if (vrPlayer == null) return null;
+            Object vrData = fVrDataRender.get(vrPlayer);
+            if (vrData == null) return null;
+            Object devicePose = (main ? fC0 : fC1).get(vrData);
+            if (devicePose == null) return null;
+            Object v = mGetCustomVector.invoke(devicePose,
+                    new org.joml.Vector3f((float) x, (float) y, (float) z));
+            if (!(v instanceof org.joml.Vector3fc r)) return null;
+            return new Vec3(r.x(), r.y(), r.z());
+        } catch (ReflectiveOperationException | LinkageError e) {
+            axisBroken = true;
+            System.out.println("[ViveMonkeCraft] Controller orientation unavailable, hoverboard disabled: " + e);
+            return null;
+        }
     }
 
     // -----------------------------------------------------------------------
