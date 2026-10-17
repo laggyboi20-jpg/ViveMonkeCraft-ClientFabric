@@ -20,3 +20,7 @@ Thumbs.db
 
 # Dev client run directory
 run/
+
+# Stonecutter per-version build output
+.gradle/
+versions/*/build/
