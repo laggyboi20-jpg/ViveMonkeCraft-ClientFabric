@@ -9,6 +9,7 @@
     "FallDamageMixin",
     "FluidEyeBoxMixin",
     "InteractTrackerMixin",
+    "LivingEntityRendererInvoker",
     "SwingTrackerMixin",
     "TeleportTrackerMixin",
     "PlayerHitboxMixin",

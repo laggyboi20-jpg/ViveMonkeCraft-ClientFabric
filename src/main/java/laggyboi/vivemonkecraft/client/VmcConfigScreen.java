@@ -607,6 +607,24 @@ public final class VmcConfigScreen {
                 .setSaveConsumer(v -> MovementConfig.hoverTiltOffset = v).build());
 
         // -----------------------------------------------------------------
+        // COSMETICS — free 3D wearables, one toggle each
+        // -----------------------------------------------------------------
+        ConfigCategory cosmeticsPage = builder.getOrCreateCategory(Component.literal("Cosmetics"));
+
+        cosmeticsPage.addEntry(eb.startTextDescription(Component.literal(
+                "§7Free cosmetics, all unlocked. Other players with ViveMonkeCraft see what you wear."))
+                .build());
+
+        for (laggyboi.vivemonkecraft.client.cosmetics.Cosmetic c
+                : laggyboi.vivemonkecraft.client.cosmetics.Cosmetics.all()) {
+            cosmeticsPage.addEntry(eb.startBooleanToggle(Component.literal(c.name),
+                            laggyboi.vivemonkecraft.client.cosmetics.Cosmetics.isEquipped(c.id))
+                    .setDefaultValue(false)
+                    .setSaveConsumer(v -> laggyboi.vivemonkecraft.client.cosmetics.Cosmetics.setEquipped(c.id, v))
+                    .build());
+        }
+
+        // -----------------------------------------------------------------
         // HOW-TO — text tutorials (no settings, just guidance)
         // -----------------------------------------------------------------
         ConfigCategory howto = builder.getOrCreateCategory(Component.literal("How-to"));

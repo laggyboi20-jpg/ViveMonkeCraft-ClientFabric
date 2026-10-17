@@ -17,3 +17,6 @@ Thumbs.db
 *.class
 *.jar
 *.war   
+
+# Dev client run directory
+run/

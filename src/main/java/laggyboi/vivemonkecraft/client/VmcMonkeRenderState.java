@@ -19,4 +19,9 @@ public interface VmcMonkeRenderState {
     boolean vmc$hideOwnBody();
 
     void vmc$setHideOwnBody(boolean hide);
+
+    // The cosmetics to draw on this player (see CosmeticLayer). Never null.
+    java.util.List<laggyboi.vivemonkecraft.client.cosmetics.Cosmetic> vmc$cosmetics();
+
+    void vmc$setCosmetics(java.util.List<laggyboi.vivemonkecraft.client.cosmetics.Cosmetic> cosmetics);
 }

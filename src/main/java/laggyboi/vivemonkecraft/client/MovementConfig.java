@@ -374,6 +374,10 @@ public final class MovementConfig {
     // will do. Persisted like any other setting. Not a gameplay value.
     public static String activePreset = "Default";
 
+    // COSMETICS — ids of the cosmetics you wear, comma-separated (e.g. pink_hat).
+    // Empty = none. Edited from the Cosmetics page of the config screen.
+    public static String cosmetics = "";
+
 
     public static final String[] PRESET_NAMES = {
         "Default", "tutorial", "Long Arms", "Zero Gravity", "Speed Run"
@@ -698,6 +702,8 @@ public final class MovementConfig {
                     modToggled          = parseB(p, "modToggled",          modToggled);
                     activePreset        = p.getProperty("activePreset", activePreset).trim();
                 }
+                // Cosmetics aren't a tuning value, so they survive a config-version reset.
+                cosmetics = p.getProperty("cosmetics", cosmetics).trim();
             } else {
                 // FIRST RUN — no config file yet. Start from the curated Default
                 // preset instead of the bare field initializers, then save it.
@@ -955,7 +961,9 @@ public final class MovementConfig {
             sb.append("# The preset the Mod Menu 'reset' buttons revert to (set by picking a preset\n");
             sb.append("# in the config screen). One of: Default, tutorial, Long Arms, Zero Gravity,\n");
             sb.append("# Speed Run. Not a gameplay value.\n");
-            sb.append("activePreset=").append(activePreset).append("\n");
+            sb.append("activePreset=").append(activePreset).append("\n\n");
+            sb.append("# Cosmetics you wear, comma-separated ids (e.g. pink_hat). Empty = none.\n");
+            sb.append("cosmetics=").append(cosmetics).append("\n");
 
             Files.writeString(path, sb.toString());
         } catch (Exception e) {
