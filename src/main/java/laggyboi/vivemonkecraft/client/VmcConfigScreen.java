@@ -85,7 +85,7 @@ public final class VmcConfigScreen {
         // reverts to the active preset. try/finally guarantees we always restore.
         Map<String, Object> current = MovementConfig.snapshot();
         try {
-            applyPreset(MovementConfig.activePreset);
+            MovementConfig.applyPreset(MovementConfig.activePreset);
             presetVals = MovementConfig.snapshot();
         } finally {
             MovementConfig.restore(current);
@@ -130,7 +130,7 @@ public final class VmcConfigScreen {
         // time the screen opens).
         builder.setSavingRunnable(() -> {
             if (!pendingPreset[0].equals("— None —")) {
-                applyPreset(pendingPreset[0]);
+                MovementConfig.applyPreset(pendingPreset[0]);
                 MovementConfig.activePreset = pendingPreset[0];
             }
             MovementConfig.save();
@@ -577,122 +577,4 @@ public final class VmcConfigScreen {
         return builder.build();
     }
 
-    // =========================================================================
-    // PRESETS
-    // =========================================================================
-
-    // Every preset starts from the COMPLETE Default baseline and then applies its own
-    // overrides, so each preset is a self-contained configuration (and the reset
-    // buttons above can resolve a value for every field). Picking a preset therefore
-    // resets settings it doesn't mention back to Default — intended, so "reset to this
-    // preset" and the active-preset indicator are always truthful.
-    private void applyPreset(String preset) {
-        // Full Default baseline first — every preset builds on this.
-        MovementConfig.applyDefaultPreset();
-
-        switch (preset) {
-            case "Default":
-                // Just the baseline.
-                break;
-
-            case "tutorial":
-                //it gives every helping settings turned on
-                MovementConfig.pullStrength        = 2.5;
-                MovementConfig.groundFriction      = 1.0;
-                MovementConfig.airFriction         = 0.1;
-                MovementConfig.wallStickiness      = 1.0;
-                MovementConfig.floorStickiness     = 1.0;
-                MovementConfig.minImpulse          = 0.002;
-                MovementConfig.handReachMultiplier = 1.0;
-                MovementConfig.velocityLimit       = 0.05;
-                MovementConfig.jumpMultiplier      = 1.8;
-                MovementConfig.maxArmLength        = 3.0;
-                MovementConfig.handRadius          = 0.10;
-                MovementConfig.hitboxHeightScale   = 0.25;
-                MovementConfig.stepAssist          = true;
-                MovementConfig.stepTeleport        = true;
-                MovementConfig.stepHeight          = 1.5;
-                MovementConfig.jumpMultiplier      = 1.5;
-                MovementConfig.maxJumpSpeed        = 1.0;
-                MovementConfig.velocityHistorySize = 6;
-                MovementConfig.gravityMultiplier   = 1.0;
-                MovementConfig.showHandMarkers     = true;
-                MovementConfig.monkeModel          = true;
-                MovementConfig.realMonke           = true;
-                MovementConfig.modelTorsoPitch     = -120.0;
-                MovementConfig.gtPhysics           = false;
-                break;
-
-            case "Long Arms":
-                // Closer to the official Gorilla Tag experience:
-                //   - Stronger pull so arm swings feel punchy.
-                //   - Lower air drag so throws carry farther.
-                //   - Slightly easier throw trigger (lower velocityLimit).
-                //   - More powerful launches with a higher cap.
-                //   - Walls SLIDE (no clinging) so you keep momentum instead of sticking.
-                //   - MONKE MODEL on: the legless GT body with the -120° torso lean.
-                MovementConfig.pullStrength        = 2.5;
-                MovementConfig.groundFriction      = 0.4;
-                MovementConfig.airFriction         = 0.1;
-                MovementConfig.wallStickiness      = 0.9;
-                MovementConfig.floorStickiness     = 1.0;
-                MovementConfig.minImpulse          = 0.002;
-                MovementConfig.handReachMultiplier = 3.5;
-                MovementConfig.velocityLimit       = 0.05;
-                MovementConfig.jumpMultiplier      = 1.8;
-                MovementConfig.maxJumpSpeed        = 1.5;
-                MovementConfig.velocityHistorySize = 5;
-                MovementConfig.gravityMultiplier   = 1.0;
-                MovementConfig.showHandMarkers     = true;
-                MovementConfig.monkeModel          = true;
-                MovementConfig.realMonke           = true;
-                MovementConfig.modelTorsoPitch     = -120.0;
-
-                break;
-
-            case "Zero Gravity":
-                // Space/floating experience:
-                //   - No gravity: you float after releasing a surface.
-                //   - Very low air drag: momentum carries indefinitely.
-                //   - Bigger throws so you can actually navigate.
-                //   - Full wall stickiness so you can push off any surface.
-                MovementConfig.gravityMultiplier   = 0.1;
-                MovementConfig.airFriction         = 0.05;
-                MovementConfig.wallStickiness      = 1.0;
-                MovementConfig.floorStickiness     = 0.8;
-                MovementConfig.pullStrength        = 2.0;
-                MovementConfig.jumpMultiplier      = 2.0;
-                MovementConfig.maxJumpSpeed        = 2.5;
-                MovementConfig.groundFriction      = 0.9;
-                MovementConfig.monkeModel          = true;
-                MovementConfig.realMonke           = true;
-                MovementConfig.modelTorsoPitch     = -120.0;
-                break;
-
-            case "Speed Run":
-                // Built for covering ground as fast as possible:
-                //   - Very high pull strength for huge launches.
-                //   - Long gorilla arms to grab from further away.
-                //   - Low air drag so speed carries between grabs.
-                //   - Fewer history ticks for snappier throw detection.
-                //   - High max speed so you can actually rocket.
-                MovementConfig.pullStrength        = 5.0;
-                MovementConfig.handReachMultiplier = 1.0;
-                MovementConfig.maxArmLength        = 1.5;
-                MovementConfig.airFriction         = 0.1;
-                MovementConfig.jumpMultiplier      = 3.5;
-                MovementConfig.maxJumpSpeed        = 3.0;
-                MovementConfig.velocityHistorySize = 4;
-                MovementConfig.groundFriction      = 0.7;
-                MovementConfig.gravityMultiplier   = 0.9;
-                MovementConfig.monkeModel          = true;
-                MovementConfig.realMonke           = true;
-                MovementConfig.modelTorsoPitch     = -120.0;
-                break;
-
-            default:
-                // Unknown / "— None —": leave the Default baseline as-is.
-                break;
-        }
-    }
 }

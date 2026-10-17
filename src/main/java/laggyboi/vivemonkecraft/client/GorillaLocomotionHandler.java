@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
@@ -54,6 +55,22 @@ import java.util.Arrays;
 // =====================================================================
 
 public class GorillaLocomotionHandler {
+
+    // ---- LOCOMOTION MODE REGISTRY ----
+    public static final int MODE_SPEED_SWING = 0;
+    public static final int MODE_GT_ANCHOR   = 1;
+    public static final int MODE_CHARGE_JUMP = 2;
+    public static final int MODE_COUNT       = 3;
+
+    private static final String[] MODE_NAMES = { "Speed Swing", "GT Anchor", "Charge Jump" };
+
+    public static String modeName(int i) {
+        return (i >= 0 && i < MODE_NAMES.length) ? MODE_NAMES[i] : ("Mode " + i);
+    }
+
+    // ---- CHARGE-JUMP tuning ----
+    private static final int CHARGE_FULL_TICKS = 30;
+    private static final int CHARGE_MIN_FIRE_TICKS = 2;
 
     // A grab counts as a FLOOR grab when the grabbed point is at least this many
     // blocks BELOW your head (i.e. you reached down to the ground). Above that it's
@@ -130,6 +147,8 @@ public class GorillaLocomotionHandler {
         // push-strength anchor receding.
         Vec3    gripOffset    = null;
 
+        int     latchTicks    = 0;
+
         void release() {
             gripping      = false;
             floorGrip     = false;
@@ -137,6 +156,7 @@ public class GorillaLocomotionHandler {
             anchor        = null;
             anchorDisplay = null;
             gripOffset    = null;
+            latchTicks    = 0;
             // wasGripping intentionally NOT cleared — the grab-end logic needs it this tick
         }
 
@@ -494,16 +514,14 @@ public class GorillaLocomotionHandler {
         ensureSwingHistory();
 
         // ---- PHYSICS MODE DISPATCH ----
-        // gtPhysics → faithful Gorilla Tag anchor physics (Player.cs port). Kept in the
-        //             mod but no longer reachable from the in-game config screen; it
-        //             defaults off and only a hand-edited properties file turns it on.
-        // else      → LEGACY speed-based model below — the supported motor.
-        // (The speed-based block keeps its original indentation to keep its diff
-        // history readable.)
-        if (MovementConfig.gtPhysics) {
+        int activeMode = (int) MovementConfig.locomotionMode;
+        if (activeMode == MODE_GT_ANCHOR) {
             applyGtPhysics(client, player, touchMain, touchOff,
                            swingMain, swingOff, headPos,
                            topFaceMain, topFaceOff, fallSpeed);
+        } else if (activeMode == MODE_CHARGE_JUMP) {
+            applyChargePhysics(client, player, touchMain, touchOff,
+                           swingMain, swingOff, headPos, fallSpeed);
         } else {
 
         // ---- PER-HAND SWING -> VELOCITY ----
@@ -903,7 +921,7 @@ public class GorillaLocomotionHandler {
         }
         wasAnyGripping = anyGrip;
 
-        } // end of speed-based physics (gtPhysics=false)
+        } // end of speed-based physics (MODE_SPEED_SWING)
 
         // ---- HAND MARKERS ----
         // Push this tick's hand positions to HandMarkerRenderer so it can draw them
@@ -1077,7 +1095,7 @@ public class GorillaLocomotionHandler {
                 if (VmcDebugLog.on()) VmcDebugLog.event("MINE",
                         "start " + pos + " " + client.level.getBlockState(pos).getBlock());
             }
-            player.swing(InteractionHand.MAIN_HAND);
+            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
             miningGrace = MINING_GRACE;            // refresh the hold window
             if (client.level.getBlockState(pos).isAir()) miningPos = null;
             return;
@@ -1375,6 +1393,104 @@ public class GorillaLocomotionHandler {
             }
         }
         wasAnyGripping = anyGrip;
+    }
+
+    // ---- CHARGE-JUMP PHYSICS (MODE_CHARGE_JUMP) ----
+    private void applyChargePhysics(Minecraft client, LocalPlayer player,
+                                    Vec3 touchMain, Vec3 touchOff,
+                                    Vec3 realMain,  Vec3 realOff, Vec3 headPos,
+                                    double fallSpeed) {
+
+        double effMaxSpd = SettingCaps.maxJumpSpeed();
+
+        boolean fireMain = chargeProcessHand(client, mainHand, touchMain, fallSpeed);
+        boolean fireOff  = chargeProcessHand(client, offHand,  touchOff,  fallSpeed);
+
+        HandState firing = null;
+        if (fireMain && fireOff) firing = (mainHand.latchTicks >= offHand.latchTicks) ? mainHand : offHand;
+        else if (fireMain)       firing = mainHand;
+        else if (fireOff)        firing = offHand;
+
+        if (firing != null && firing.anchorDisplay != null) {
+            double charge = Math.min(1.0, firing.latchTicks / (double) CHARGE_FULL_TICKS);
+            double power  = MovementConfig.chargeMinLaunch
+                          + charge * (MovementConfig.chargeMaxLaunch - MovementConfig.chargeMinLaunch);
+            power = Math.min(power, effMaxSpd);
+
+            Vec3 dir = headPos.subtract(firing.anchorDisplay);
+            if (dir.lengthSqr() < 0.01) dir = new Vec3(0, 1, 0);
+            Vec3 shot = dir.normalize().scale(power);
+
+            if (noGravSet) { player.setNoGravity(false); noGravSet = false; }
+            player.setDeltaMovement(clampToBlocks(client, player, shot));
+            mainHand.release();
+            offHand.release();
+            wasAnyGripping = false;
+            return;
+        }
+
+        boolean anyLatch = mainHand.gripping || offHand.gripping;
+
+        if (anyLatch) {
+            player.resetFallDistance();
+            grippingThisTick = true;
+            suppressServerFall(client);
+            if (!noGravSet) { player.setNoGravity(true); noGravSet = true; }
+            player.setDeltaMovement(Vec3.ZERO);
+            wasAnyGripping = true;
+            return;
+        }
+
+        if (noGravSet) { player.setNoGravity(false); noGravSet = false; }
+
+        double g = SettingCaps.gravityMultiplier();
+        if (g < 1.0 && !player.onGround()) {
+            Vec3 v = player.getDeltaMovement();
+            player.setDeltaMovement(v.x, v.y + 0.08 * (1.0 - g), v.z);
+        }
+        if (player.onGround()) {
+            double f = Math.max(0.0, Math.min(1.0,
+                    MovementConfig.groundFriction * MovementConfig.floorStickiness));
+            if (f < 1.0) {
+                Vec3 v = player.getDeltaMovement();
+                player.setDeltaMovement(v.x * f, v.y, v.z * f);
+            }
+        }
+        double af = SettingCaps.airFriction();
+        if (af < 1.0 && !player.onGround()) {
+            double comp = Math.pow(0.91, af - 1.0);
+            Vec3 v = player.getDeltaMovement();
+            player.setDeltaMovement(v.x * comp, v.y, v.z * comp);
+        }
+        if (MovementConfig.stepAssist && !player.onGround()) applyLaunchStepBoost(client, player);
+
+        wasAnyGripping = false;
+    }
+
+    private boolean chargeProcessHand(Minecraft client, HandState state,
+                                      Vec3 touchHand, double fallSpeed) {
+        boolean touching = isTouchingBlockFallSweep(client, touchHand, fallSpeed);
+
+        if (!state.gripping) {
+            if (touching) {
+                state.gripping      = true;
+                state.anchorDisplay = touchHand;
+                state.latchTicks    = 0;
+            }
+            return false;
+        }
+
+        if (touching) {
+            state.anchorDisplay = touchHand;
+            state.latchTicks++;
+            return false;
+        }
+
+        if (state.latchTicks >= CHARGE_MIN_FIRE_TICKS) {
+            return true;
+        }
+        state.release();
+        return false;
     }
 
     // GT per-hand processing: anchor management + drag computation.

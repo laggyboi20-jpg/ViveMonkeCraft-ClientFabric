@@ -3,7 +3,6 @@ package laggyboi.vivemonkecraft.client.platform;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
-import org.lwjgl.glfw.GLFW;
 
 // =====================================================================
 // KEYBINDS                                                 [FABRIC BODY]
@@ -12,27 +11,39 @@ import org.lwjgl.glfw.GLFW;
 // The KeyMapping itself is constructed identically on every loader (it's vanilla);
 // only how it gets REGISTERED differs, which is what init() hides.
 //
-// UNBOUND by default (no key out of the box). To toggle from Vivecraft's radial
-// menu you must first bind it to a real keyboard key in Options -> Controls ->
-// Miscellaneous, then assign that key to a radial slot — Vivecraft can only put
-// KEYBOARD keys on radial slots. See the "How-to" page in the config screen.
+// Bound to real keys by default so the Vivecraft radial menu can assign them
+// immediately (Vivecraft can only put KEYBOARD keys on radial slots — an
+// unbound key shows up but opens the mod settings instead of toggling).
+// The user can rebind in Options -> Controls -> Miscellaneous.
 // =====================================================================
 public final class VmcKeybinds {
 
     private VmcKeybinds() {}
 
-    // Shared on all branches — do not diverge, the translation key is the identity
-    // Vivecraft's radial menu shows.
+    // Default keys: V = toggle, B = cycle preset. Both are unused by vanilla
+    // and most mods. The user can rebind freely.
     public static final KeyMapping TOGGLE = new KeyMapping(
             "key.vivemonkecraft.toggle",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_UNKNOWN,
-            // 1.21.9 replaced the String category constants (CATEGORY_MISC) with
-            // KeyMapping.Category record objects.
+            InputConstants.KEY_V,
             KeyMapping.Category.MISC);
 
-    /** Hand the keybind to the loader. Called once from the bootstrap. */
+    public static final KeyMapping CYCLE_MODE = new KeyMapping(
+            "key.vivemonkecraft.cyclemode",
+            InputConstants.KEY_B,
+            KeyMapping.Category.MISC);
+
+    /** Hand the keybinds to the loader. Called once from the bootstrap. */
     public static void init() {
+        // Migrate stale GLFW_KEY_UNKNOWN (-1) saved in options.txt from pre-26.3;
+        // -1 is not a valid SDL scancode and crashes Vivecraft's radial menu.
+        InputConstants.Key staleUnbound = InputConstants.Type.KEYBOARD.getOrCreate(-1);
+        if (TOGGLE.matches(staleUnbound)) {
+            TOGGLE.setKey(InputConstants.UNKNOWN);
+        }
+        if (CYCLE_MODE.matches(staleUnbound)) {
+            CYCLE_MODE.setKey(InputConstants.UNKNOWN);
+        }
         KeyMappingHelper.registerKeyMapping(TOGGLE);
+        KeyMappingHelper.registerKeyMapping(CYCLE_MODE);
     }
 }

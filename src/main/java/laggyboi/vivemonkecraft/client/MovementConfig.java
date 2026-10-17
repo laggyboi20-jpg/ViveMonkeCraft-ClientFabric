@@ -26,7 +26,7 @@ public final class MovementConfig {
 
     // Bumped when defaults change in a way that should override old config files.
     // An older saved version resets to the new defaults once.
-    private static final int CURRENT_CONFIG_VERSION = 16;
+    private static final int CURRENT_CONFIG_VERSION = 17;
 
     // -----------------------------------------------------------------------
     // The tunable values (DEFAULTS until the file is loaded)
@@ -177,6 +177,14 @@ public final class MovementConfig {
     // can be re-enabled for testing by hand-editing config/vivemonkecraft.properties
     // (or by flipping ModMenuIntegration.SHOW_GT_PHYSICS_UI back to true).
     public static boolean gtPhysics = false;
+
+    // LOCOMOTION MODE — index into GorillaLocomotionHandler's mode registry.
+    //   0 = Speed Swing, 1 = GT Anchor, 2 = Charge Jump
+    public static double locomotionMode = 0;
+
+    // CHARGE JUMP (mode 2) — launch speed (blocks/tick) for a bare tap vs full hold.
+    public static double chargeMinLaunch = 0.45;
+    public static double chargeMaxLaunch = 1.10;
 
     // STEP TELEPORT: how step assist lifts you over a ledge while airborne.
     //   true  = place you directly on top of the block (instant, never overshoots)
@@ -333,6 +341,11 @@ public final class MovementConfig {
     // without retracting your hand. Walls/climbing are unaffected. true/false.
     public static boolean groundedGripRelease = true;
 
+    // MOD TOGGLED — persisted on/off state of gorilla locomotion. When false, the
+    // mod will NOT auto-enable on world join even if VR is active. Toggling the
+    // keybind writes this to disk so the choice survives across sessions.
+    public static boolean modToggled = true;
+
     // ACTIVE PRESET — the name of the last preset applied from the Mod Menu screen
     // (or "Default" on first run). The ModMenu reset buttons resolve their target
     // values from THIS preset, and the screen shows it so players know what "reset"
@@ -340,8 +353,89 @@ public final class MovementConfig {
     public static String activePreset = "Default";
 
 
-    // NOTE: presets live in ModMenuIntegration (the Mod Menu config screen) — the
-    // old in-class preset system was unused and has been removed.
+    public static final String[] PRESET_NAMES = {
+        "Default", "tutorial", "Long Arms", "Zero Gravity", "Speed Run"
+    };
+
+    public static void applyPreset(String preset) {
+        applyDefaultPreset();
+        switch (preset) {
+            case "Default":
+                break;
+            case "tutorial":
+                pullStrength        = 2.5;
+                groundFriction      = 1.0;
+                airFriction         = 0.1;
+                wallStickiness      = 1.0;
+                floorStickiness     = 1.0;
+                minImpulse          = 0.002;
+                handReachMultiplier = 1.0;
+                velocityLimit       = 0.05;
+                jumpMultiplier      = 1.5;
+                maxArmLength        = 3.0;
+                handRadius          = 0.10;
+                hitboxHeightScale   = 0.25;
+                stepAssist          = true;
+                stepTeleport        = true;
+                stepHeight          = 1.5;
+                maxJumpSpeed        = 1.0;
+                velocityHistorySize = 6;
+                gravityMultiplier   = 1.0;
+                showHandMarkers     = true;
+                monkeModel          = true;
+                realMonke           = true;
+                modelTorsoPitch     = -120.0;
+                gtPhysics           = false;
+                break;
+            case "Long Arms":
+                pullStrength        = 2.5;
+                groundFriction      = 0.4;
+                airFriction         = 0.1;
+                wallStickiness      = 0.9;
+                floorStickiness     = 1.0;
+                minImpulse          = 0.002;
+                handReachMultiplier = 3.5;
+                velocityLimit       = 0.05;
+                jumpMultiplier      = 1.8;
+                maxJumpSpeed        = 1.5;
+                velocityHistorySize = 5;
+                gravityMultiplier   = 1.0;
+                showHandMarkers     = true;
+                monkeModel          = true;
+                realMonke           = true;
+                modelTorsoPitch     = -120.0;
+                break;
+            case "Zero Gravity":
+                gravityMultiplier   = 0.1;
+                airFriction         = 0.05;
+                wallStickiness      = 1.0;
+                floorStickiness     = 0.8;
+                pullStrength        = 2.0;
+                jumpMultiplier      = 2.0;
+                maxJumpSpeed        = 2.5;
+                groundFriction      = 0.9;
+                monkeModel          = true;
+                realMonke           = true;
+                modelTorsoPitch     = -120.0;
+                break;
+            case "Speed Run":
+                pullStrength        = 5.0;
+                handReachMultiplier = 1.0;
+                maxArmLength        = 1.5;
+                airFriction         = 0.1;
+                jumpMultiplier      = 3.5;
+                maxJumpSpeed        = 3.0;
+                velocityHistorySize = 4;
+                groundFriction      = 0.7;
+                gravityMultiplier   = 0.9;
+                monkeModel          = true;
+                realMonke           = true;
+                modelTorsoPitch     = -120.0;
+                break;
+            default:
+                break;
+        }
+    }
 
     // -----------------------------------------------------------------------
     // /vmc set <setting> <value> support — every public double/boolean field
@@ -421,6 +515,9 @@ public final class MovementConfig {
         realMonke           = true;
         modelTorsoPitch     = -120.0;
         gtPhysics           = false;
+        locomotionMode      = 0;
+        chargeMinLaunch     = 0.45;
+        chargeMaxLaunch     = 1.10;
         punchMining         = true;
         punchMiningThreshold = 0.04;
         punchMiningNoTool   = true;
@@ -524,6 +621,13 @@ public final class MovementConfig {
                     cameraStabStrength  = parseD(p, "cameraStabStrength",  cameraStabStrength);
                     gripSmoothing       = parseD(p, "gripSmoothing",       gripSmoothing);
                     gtPhysics           = parseB(p, "gtPhysics",           gtPhysics);
+                    if (p.getProperty("locomotionMode") == null) {
+                        locomotionMode = gtPhysics ? 1 : 0;
+                    } else {
+                        locomotionMode = parseD(p, "locomotionMode", locomotionMode);
+                    }
+                    chargeMinLaunch     = parseD(p, "chargeMinLaunch",     chargeMinLaunch);
+                    chargeMaxLaunch     = parseD(p, "chargeMaxLaunch",     chargeMaxLaunch);
                     stepTeleport        = parseB(p, "stepTeleport",        stepTeleport);
                     gtDragGain          = parseD(p, "gtDragGain",          gtDragGain);
                     gtUnstickDistance   = parseD(p, "gtUnstickDistance",   gtUnstickDistance);
@@ -553,6 +657,7 @@ public final class MovementConfig {
                     disableFallDamage   = parseB(p, "disableFallDamage",   disableFallDamage);
                     singleFloorGrip     = parseB(p, "singleFloorGrip",     singleFloorGrip);
                     groundedGripRelease = parseB(p, "groundedGripRelease", groundedGripRelease);
+                    modToggled          = parseB(p, "modToggled",          modToggled);
                     activePreset        = p.getProperty("activePreset", activePreset).trim();
                 }
             } else {
@@ -695,6 +800,13 @@ public final class MovementConfig {
             sb.append("# to test it, but it gets no tuning UI and no support.\n");
             sb.append("gtPhysics=").append(gtPhysics).append("\n\n");
 
+            sb.append("# LOCOMOTION MODE: 0=Speed Swing, 1=GT Anchor, 2=Charge Jump\n");
+            sb.append("locomotionMode=").append(locomotionMode).append("\n\n");
+
+            sb.append("# CHARGE JUMP (mode 2): launch speed for a tap vs full ~1.5s hold\n");
+            sb.append("chargeMinLaunch=").append(chargeMinLaunch).append("\n");
+            sb.append("chargeMaxLaunch=").append(chargeMaxLaunch).append("\n\n");
+
             sb.append("# STEP TELEPORT: how step assist lifts you over ledges while airborne.\n");
             sb.append("#   true  = place you directly on top of the block (instant)\n");
             sb.append("#   false = old upward velocity boost (arcs you over)\n");
@@ -778,6 +890,10 @@ public final class MovementConfig {
             sb.append("# Auto-release a floor grip once you're grounded again so you're not wedged after\n");
             sb.append("# jumping straight up with your hand held in place. true/false.\n");
             sb.append("groundedGripRelease=").append(groundedGripRelease).append("\n\n");
+
+            sb.append("# Whether gorilla locomotion is toggled on. Persists across sessions — if you\n");
+            sb.append("# turn it off with the keybind, it stays off until you turn it back on.\n");
+            sb.append("modToggled=").append(modToggled).append("\n\n");
 
             sb.append("# The preset the Mod Menu 'reset' buttons revert to (set by picking a preset\n");
             sb.append("# in the config screen). One of: Default, tutorial, Long Arms, Zero Gravity,\n");

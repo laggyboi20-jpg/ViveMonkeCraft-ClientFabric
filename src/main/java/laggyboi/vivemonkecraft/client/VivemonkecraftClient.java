@@ -85,6 +85,7 @@ public class VivemonkecraftClient {
     // the "ViveMonkeCraft: Toggle" keybind to a radial slot.
     // To toggle via keyboard: rebind in Options -> Controls -> Miscellaneous.
     private final KeyMapping toggleKey = VmcKeybinds.TOGGLE;
+    private final KeyMapping cycleModeKey = VmcKeybinds.CYCLE_MODE;
 
     // Set by init() so the /vmc command (VmcCommands, which has no instance) can
     // reach the live handler through the cmd* statics below.
@@ -141,7 +142,7 @@ public class VivemonkecraftClient {
                                 false
                             );
                         }
-                    } else if (autoStarted && !enabled) {
+                    } else if (autoStarted && !enabled && MovementConfig.modToggled) {
                         // Authorization arrived AFTER the auto-start window closed
                         // (slow connection) — turn the mod on now.
                         applyEnabled(true);
@@ -269,7 +270,7 @@ public class VivemonkecraftClient {
         if (autoStarted && client.player != null) {
             if (vrActive && !vrWasActive) {
                 VmcDebugLog.event("VR", "headset ACTIVE");
-                if (!enabled && serverAuthorized(client) && ServerLimits.modEnabled) applyEnabled(true);
+                if (!enabled && MovementConfig.modToggled && serverAuthorized(client) && ServerLimits.modEnabled) applyEnabled(true);
             } else if (!vrActive && vrWasActive) {
                 VmcDebugLog.event("VR", "headset INACTIVE");
                 if (enabled) applyEnabled(false);
@@ -284,6 +285,9 @@ public class VivemonkecraftClient {
         // Toggle on each press of the keybind (keyboard or Vivecraft radial menu).
         while (toggleKey.consumeClick()) {
             toggle();
+        }
+        while (cycleModeKey.consumeClick()) {
+            cyclePreset(client);
         }
 
         // Dimension change (Nether/End portal, /execute in, etc.) AND respawn after
@@ -422,7 +426,29 @@ public class VivemonkecraftClient {
     // -----------------------------------------------------------------------
 
     private void toggle() {
-        applyEnabled(!enabled);
+        boolean next = !enabled;
+        MovementConfig.modToggled = next;
+        MovementConfig.save();
+        applyEnabled(next);
+    }
+
+    private void cyclePreset(Minecraft client) {
+        String[] names = MovementConfig.PRESET_NAMES;
+        int cur = 0;
+        for (int i = 0; i < names.length; i++) {
+            if (names[i].equals(MovementConfig.activePreset)) { cur = i; break; }
+        }
+        int next = (cur + 1) % names.length;
+        MovementConfig.applyPreset(names[next]);
+        MovementConfig.activePreset = names[next];
+        MovementConfig.save();
+        handler.onGuiPause(client);
+        if (client.player != null) {
+            client.gui.hud.setOverlayMessage(
+                Component.literal("§e[ViveMonkeCraft] §fPreset: §b" + names[next]),
+                false
+            );
+        }
     }
 
     private void applyEnabled(boolean on) {

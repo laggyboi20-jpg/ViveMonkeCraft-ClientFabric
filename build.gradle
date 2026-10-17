@@ -53,15 +53,12 @@ dependencies {
     // modApi "curse.maven:mcvrapi-591092:<real-file-id>"
 
     // -- Optional: enables the in-game config screen via Mod Menu --
-    // implementation (remapped) for obfuscated 1.21.4.
     // (exclude fabric-api so we don't drag in a second copy.)
-    // Mod Menu has no clean 26.1 release (17.x is <26, 18+ target 26.2); the 26.x-era
-    // 18.0.0-alpha.8 supplies the stable ModMenuApi for compiling ModMenuIntegration.
-    implementation("com.terraformersmc:modmenu:18.0.0-alpha.8") {
+    implementation("com.terraformersmc:modmenu:21.0.0") {
         exclude(group: "net.fabricmc.fabric-api")
     }
-    // Cloth Config now tracks the MC version: 26.1.154 == 26.1.x.
-    implementation("me.shedaniel.cloth:cloth-config-fabric:26.1.154") {
+    // Cloth Config now tracks the MC version: 26.3.159 == 26.3.x.
+    implementation("me.shedaniel.cloth:cloth-config-fabric:26.3.159") {
         exclude(group: "net.fabricmc.fabric-api")
     }
 }
