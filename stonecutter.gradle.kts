@@ -6,11 +6,29 @@ plugins {
 // "Set active project to ..." Gradle tasks; commit with it back on 26.3.
 stonecutter active "26.3"
 
+// One-to-one renames between versions. The source uses the right-hand (newer)
+// name; Stonecutter swaps in the left-hand one for versions where the condition
+// is false. Anything that isn't a plain rename is a //? block in the code
+// (mostly in client/compat/VmcCompat).
 stonecutter parameters {
     replacements {
-        // 1.21.11 renamed ResourceLocation to Identifier.
+        // 1.21.11 renamed ResourceLocation to Identifier, moved PlayerModel into
+        // model.player and split RenderType's factories out into RenderTypes.
         string(current.parsed >= "1.21.11") {
             replace("ResourceLocation", "Identifier")
+            replace("net.minecraft.client.model.PlayerModel", "net.minecraft.client.model.player.PlayerModel")
+            replace("net.minecraft.client.renderer.RenderType;", "net.minecraft.client.renderer.rendertype.RenderTypes;")
+            replace("RenderType.entityCutoutNoCull(", "RenderTypes.entityCutout(")
+        }
+
+        // 26.1 renamed Fabric API classes to Mojang names.
+        string(current.parsed >= "26.1") {
+            replace("PayloadTypeRegistry.playS2C()", "PayloadTypeRegistry.clientboundPlay()")
+            replace("PayloadTypeRegistry.playC2S()", "PayloadTypeRegistry.serverboundPlay()")
+            replace("fabric.api.client.keybinding.v1.KeyBindingHelper", "fabric.api.client.keymapping.v1.KeyMappingHelper")
+            replace("KeyBindingHelper.registerKeyBinding(", "KeyMappingHelper.registerKeyMapping(")
+            replace("fabric.api.itemgroup.v1.ItemGroupEvents", "fabric.api.creativetab.v1.CreativeModeTabEvents")
+            replace("ItemGroupEvents.modifyEntriesEvent(", "CreativeModeTabEvents.modifyOutputEvent(")
         }
     }
 }

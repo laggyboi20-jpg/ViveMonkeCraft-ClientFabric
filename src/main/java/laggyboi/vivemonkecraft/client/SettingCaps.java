@@ -1,8 +1,8 @@
 package laggyboi.vivemonkecraft.client;
 
+import laggyboi.vivemonkecraft.client.compat.VmcCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.server.permissions.Permissions;
 
 // =====================================================================
 // SETTING CAPS — what players may use WITHOUT cheats / operator access
@@ -48,8 +48,7 @@ public final class SettingCaps {
     // -----------------------------------------------------------------------
     public static boolean unrestricted() {
         LocalPlayer p = Minecraft.getInstance().player;
-        // 1.21.11 replaced int op-levels with a PermissionSet; level 2 == GAMEMASTERS.
-        return p != null && p.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
+        return p != null && VmcCompat.isOperator(p);
     }
 
     // -----------------------------------------------------------------------

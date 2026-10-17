@@ -38,6 +38,24 @@ public final class VmcCompat {
         *///?}
     }
 
+    /** Puts a message in your chat (not the action bar). */
+    public static void chat(LocalPlayer player, Component message) {
+        //? if >=26.1 {
+        player.sendSystemMessage(message);
+        //?} else {
+        /*player.displayClientMessage(message, false);
+        *///?}
+    }
+
+    /** Operator-level permission (level 2): singleplayer with cheats, or op on a server. */
+    public static boolean isOperator(LocalPlayer player) {
+        //? if >=1.21.11 {
+        return player.permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER);
+        //?} else {
+        /*return player.hasPermissions(2);
+        *///?}
+    }
+
     /** Swings the main hand (and tells the server). */
     public static void swingMainHand(LocalPlayer player) {
         //? if >=26.3 {

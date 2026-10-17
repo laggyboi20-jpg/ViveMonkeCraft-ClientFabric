@@ -251,10 +251,7 @@ public class VivemonkecraftClient {
                 // headset). Here we only warn once if the server hasn't opted in.
                 if (!serverAuthorized(client) && !warnedNoServerMod) {
                     warnedNoServerMod = true;
-                    // 26.1 removed Player.displayClientMessage(Component, boolean);
-                    // sendSystemMessage(Component) is the chat-message equivalent (the old
-                    // boolean=false meant "chat, not action bar").
-                    client.player.sendSystemMessage(Component.literal(
+                    VmcCompat.chat(client.player, Component.literal(
                         "§e[ViveMonkeCraft] §cThis server doesn't run the monke-server "
                         + "companion mod, so gorilla locomotion is disabled here. "
                         + "§7(Server admins: install the ViveMonke server mod to allow it.)"));
