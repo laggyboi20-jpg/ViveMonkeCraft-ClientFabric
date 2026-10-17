@@ -1,5 +1,6 @@
 package laggyboi.vivemonkecraft.client;
 
+import laggyboi.vivemonkecraft.client.compat.VmcCompat;
 import laggyboi.vivemonkecraft.client.platform.VmcItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -103,7 +104,7 @@ public final class HoverboardHandler {
         }
         if (!speedMode) {
             if (!warnedGt) {
-                mc.gui.hud.setOverlayMessage(Component.literal(
+                VmcCompat.overlay(mc, Component.literal(
                         "Hoverboard needs the Speed Swing locomotion mode"), false);
                 warnedGt = true;
             }

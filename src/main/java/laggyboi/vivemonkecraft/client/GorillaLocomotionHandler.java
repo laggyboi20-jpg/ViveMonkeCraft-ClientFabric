@@ -1,5 +1,6 @@
 package laggyboi.vivemonkecraft.client;
 
+import laggyboi.vivemonkecraft.client.compat.VmcCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
@@ -7,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
@@ -1120,7 +1120,7 @@ public class GorillaLocomotionHandler {
                 if (VmcDebugLog.on()) VmcDebugLog.event("MINE",
                         "start " + pos + " " + client.level.getBlockState(pos).getBlock());
             }
-            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
+            VmcCompat.swingMainHand(player);
             miningGrace = MINING_GRACE;            // refresh the hold window
             if (client.level.getBlockState(pos).isAir()) miningPos = null;
             return;

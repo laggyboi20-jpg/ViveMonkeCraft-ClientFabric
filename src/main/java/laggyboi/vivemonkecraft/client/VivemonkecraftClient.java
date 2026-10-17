@@ -1,5 +1,6 @@
 package laggyboi.vivemonkecraft.client;
 
+import laggyboi.vivemonkecraft.client.compat.VmcCompat;
 import laggyboi.vivemonkecraft.client.platform.VmcEvents;
 import laggyboi.vivemonkecraft.client.platform.VmcKeybinds;
 import laggyboi.vivemonkecraft.client.platform.VmcNet;
@@ -137,7 +138,7 @@ public class VivemonkecraftClient {
                             handler.onDisable(client);
                         }
                         if (client.player != null) {
-                            client.gui.hud.setOverlayMessage(
+                            VmcCompat.overlay(client,
                                 Component.literal("§e[ViveMonkeCraft] §cDisabled by server"),
                                 false
                             );
@@ -339,7 +340,7 @@ public class VivemonkecraftClient {
             // gorilla locomotion must not move the player. Drop all grips the
             // moment a screen opens, and stay fully inert until it closes — the
             // next tick after closing resumes normally.
-            if (client.gui.screen() != null) {
+            if (VmcCompat.screen(client) != null) {
                 if (!wasInGui) {
                     wasInGui = true;
                     handler.onGuiPause(client);
@@ -444,7 +445,7 @@ public class VivemonkecraftClient {
         MovementConfig.save();
         handler.onGuiPause(client);
         if (client.player != null) {
-            client.gui.hud.setOverlayMessage(
+            VmcCompat.overlay(client,
                 Component.literal("§e[ViveMonkeCraft] §fPreset: §b" + names[next]),
                 false
             );
@@ -458,7 +459,7 @@ public class VivemonkecraftClient {
         // companion mod, refuse every enable attempt — keybind, /vmc on, auto-start.
         if (on && !serverAuthorized(client)) {
             if (client.player != null) {
-                client.gui.hud.setOverlayMessage(
+                VmcCompat.overlay(client,
                     Component.literal("§e[ViveMonkeCraft] §cThis server doesn't run the monke-server mod"),
                     false
                 );
@@ -470,7 +471,7 @@ public class VivemonkecraftClient {
         // attempt to enable it — keybind, /vmc on, or auto-start all end up here.
         if (on && !ServerLimits.modEnabled) {
             if (client.player != null) {
-                client.gui.hud.setOverlayMessage(
+                VmcCompat.overlay(client,
                     Component.literal("§e[ViveMonkeCraft] §cDisabled by server"),
                     false
                 );
@@ -495,7 +496,7 @@ public class VivemonkecraftClient {
 
             String state = on ? "§aON" : "§cOFF";
             // Show in the action bar (overlay message).
-            client.gui.hud.setOverlayMessage(
+            VmcCompat.overlay(client,
                 Component.literal("§e[ViveMonkeCraft] §fGorilla Locomotion: " + state),
                 false
             );
@@ -506,7 +507,7 @@ public class VivemonkecraftClient {
         MovementConfig.load();
         Minecraft client = Minecraft.getInstance();
         if (client.player != null) {
-            client.gui.hud.setOverlayMessage(
+            VmcCompat.overlay(client,
                 Component.literal("§e[ViveMonkeCraft] §fConfig reloaded"),
                 false
             );
