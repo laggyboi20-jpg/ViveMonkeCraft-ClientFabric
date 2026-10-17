@@ -1,12 +1,17 @@
 package laggyboi.vivemonkecraft.client;
 
 import laggyboi.vivemonkecraft.client.compat.VmcCompat;
+import laggyboi.vivemonkecraft.client.cosmetics.Cosmetics;
+import laggyboi.vivemonkecraft.client.cosmetics.CosmeticsC2SPayload;
+import laggyboi.vivemonkecraft.client.cosmetics.CosmeticsS2CPayload;
 import laggyboi.vivemonkecraft.client.platform.VmcEvents;
 import laggyboi.vivemonkecraft.client.platform.VmcKeybinds;
 import laggyboi.vivemonkecraft.client.platform.VmcNet;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+
+import java.util.List;
 
 // =====================================================================
 // CLIENT CORE — loader-neutral
@@ -55,6 +60,8 @@ public class VivemonkecraftClient {
 
     // Last announced "monke model" (legless look) state.
     private boolean lastMonkeModel = false;
+    // Cosmetics last announced to the server; null = not yet this world.
+    private String lastCosmetics = null;
 
     // Whether we last told a DEDICATED server we're gripping (for the no-fall-damage
     // slide). Tracks state so we send one "released" packet when gripping ends rather
@@ -155,6 +162,13 @@ public class VivemonkecraftClient {
             reg.clientbound(MonkeModelS2CPayload.ID, MonkeModelS2CPayload.STREAM_CODEC,
                 payload -> MonkeModelClientSet.set(payload.player(), payload.enabled()));
 
+            // Cosmetics sync: we announce what we wear (C2S) and receive everyone
+            // else's (S2C broadcast from monke-server or our own LAN host).
+            reg.clientbound(CosmeticsS2CPayload.ID, CosmeticsS2CPayload.STREAM_CODEC,
+                payload -> Cosmetics.setRemote(payload.player(), payload.ids()));
+            reg.serverbound(CosmeticsC2SPayload.ID, CosmeticsC2SPayload.STREAM_CODEC,
+                    EmbeddedServerLogic::onCosmetics);
+
             // Real Monke: C2S request asking monke-server to shrink our hitbox height.
             reg.serverbound(RealMonkeC2SPayload.ID, RealMonkeC2SPayload.STREAM_CODEC,
                     EmbeddedServerLogic::onRealMonke);
@@ -188,6 +202,7 @@ public class VivemonkecraftClient {
             warnedNoServerMod = false;
             lastRealMonke     = false;   // re-apply the shrink after the join settles
             lastMonkeModel    = false;   // re-announce the legless look too
+            lastCosmetics     = null;    // and what we wear
         });
 
         // On disconnect: turn off gorilla locomotion, clear server limits, and reset
@@ -204,6 +219,8 @@ public class VivemonkecraftClient {
             wallSlideSent     = false;   // next world starts with no pending grip state
             vrWasActive       = false;   // re-evaluate VR presence fresh next world
             MonkeModelClientSet.clear(); // stale legless flags don't carry over
+            lastCosmetics     = null;
+            Cosmetics.clearRemote();     // nor other players' cosmetics
             ServerLimits.reset();   // clear caps + authorization for the next world
             if (enabled) {
                 enabled = false;
@@ -301,6 +318,7 @@ public class VivemonkecraftClient {
                     || client.player != lastPlayerRef) {
                 lastRealMonke  = false;
                 lastMonkeModel = false;
+                lastCosmetics  = null;
             }
             lastDimension = dim;
             lastPlayerRef = client.player;
@@ -327,6 +345,16 @@ public class VivemonkecraftClient {
             if (VmcNet.canSendToServer(MonkeModelC2SPayload.ID)) {
                 VmcNet.sendToServer(new MonkeModelC2SPayload(model));
             }
+        }
+
+        // Announce what we wear whenever it changes (config screen, /vmc) and once
+        // per world. Independent of the locomotion toggle: hats show either way.
+        // Goes nowhere on servers without monke-server — there only you see yours.
+        String cosmetics = MovementConfig.cosmetics;
+        if (client.player != null && !cosmetics.equals(lastCosmetics)
+                && VmcNet.canSendToServer(CosmeticsC2SPayload.ID)) {
+            lastCosmetics = cosmetics;
+            VmcNet.sendToServer(new CosmeticsC2SPayload(List.copyOf(Cosmetics.equippedIds())));
         }
 
         boolean grippingNow = false;
