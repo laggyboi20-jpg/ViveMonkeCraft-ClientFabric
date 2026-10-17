@@ -555,6 +555,58 @@ public final class VmcConfigScreen {
                 .setSaveConsumer(v -> MovementConfig.groundedGripRelease = v).build());
 
         // -----------------------------------------------------------------
+        // HOVERBOARD — the tilt-joystick board item
+        // -----------------------------------------------------------------
+        ConfigCategory hover = builder.getOrCreateCategory(Component.literal("Hoverboard"));
+
+        hover.addEntry(eb.startBooleanToggle(Component.literal("Hoverboard enabled"), MovementConfig.hoverboardEnabled)
+                .setDefaultValue(true)
+                .setTooltip(
+                        Component.literal("Hold the Hoverboard item in either hand and tilt it like a joystick:"),
+                        Component.literal("it pushes out of its underside, so 45° forward = full speed ahead."),
+                        Component.literal("Speed Swing locomotion mode only."))
+                .setSaveConsumer(v -> MovementConfig.hoverboardEnabled = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Hover height"), MovementConfig.hoverHeight)
+                .setDefaultValue(0.4).setMin(0.0).setMax(0.5)
+                .setTooltip(Component.literal("Gap between your feet and the ground (blocks). Max 0.5 — higher looks like flying to servers."))
+                .setSaveConsumer(v -> MovementConfig.hoverHeight = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Acceleration"), MovementConfig.hoverAccel)
+                .setDefaultValue(0.035).setMin(0.0).setMax(0.2)
+                .setTooltip(Component.literal("Push per tick at full tilt. Higher = snappier."))
+                .setSaveConsumer(v -> MovementConfig.hoverAccel = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Top speed"), MovementConfig.hoverMaxSpeed)
+                .setDefaultValue(0.7).setMin(0.0).setMax(2.0)
+                .setTooltip(Component.literal("Blocks/tick. 0.7 = 14 blocks/sec."))
+                .setSaveConsumer(v -> MovementConfig.hoverMaxSpeed = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Glide (drag)"), MovementConfig.hoverDrag)
+                .setDefaultValue(0.98).setMin(0.5).setMax(1.0)
+                .setTooltip(Component.literal("Speed kept each tick. 1.0 = glide forever, 0.9 = stops quickly."))
+                .setSaveConsumer(v -> MovementConfig.hoverDrag = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Tilt deadzone"), MovementConfig.hoverDeadzone)
+                .setDefaultValue(0.12).setMin(0.0).setMax(0.6)
+                .setTooltip(Component.literal("Tilt ignored around level. 0.12 ≈ 7°."))
+                .setSaveConsumer(v -> MovementConfig.hoverDeadzone = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Wall ride speed"), MovementConfig.hoverWallRideSpeed)
+                .setDefaultValue(0.45).setMin(0.0).setMax(2.0)
+                .setTooltip(
+                        Component.literal("Speed needed to ride a wall (blocks/tick). Turn the board's"),
+                        Component.literal("underside toward the wall while going this fast."))
+                .setSaveConsumer(v -> MovementConfig.hoverWallRideSpeed = v).build());
+
+        hover.addEntry(eb.startDoubleField(Component.literal("Tilt offset (°)"), MovementConfig.hoverTiltOffset)
+                .setDefaultValue(0.0).setMin(-90.0).setMax(90.0)
+                .setTooltip(
+                        Component.literal("Shifts what counts as 'level' to match how you hold the controller."),
+                        Component.literal("Drifting forward when holding it level? Lower this. Backward? Raise it."))
+                .setSaveConsumer(v -> MovementConfig.hoverTiltOffset = v).build());
+
+        // -----------------------------------------------------------------
         // HOW-TO — text tutorials (no settings, just guidance)
         // -----------------------------------------------------------------
         ConfigCategory howto = builder.getOrCreateCategory(Component.literal("How-to"));

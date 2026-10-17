@@ -170,6 +170,7 @@ public class GorillaLocomotionHandler {
     // -----------------------------------------------------------------------
 
     private final VivecraftBridge vr = new VivecraftBridge();
+    private final HoverboardHandler hoverboard = new HoverboardHandler();
     private final HandState mainHand = new HandState();
     private final HandState offHand  = new HandState();
 
@@ -515,6 +516,14 @@ public class GorillaLocomotionHandler {
 
         // ---- PHYSICS MODE DISPATCH ----
         int activeMode = (int) MovementConfig.locomotionMode;
+
+        // ---- HOVERBOARD ----
+        // The hand holding a board steers it instead of grabbing (Speed Swing mode
+        // only; probe() returns null in the other modes, leaving both hands normal).
+        InteractionHand boardHand = hoverboard.probe(client, player, vr, activeMode == MODE_SPEED_SWING);
+        boolean boardMain = boardHand == InteractionHand.MAIN_HAND;
+        boolean boardOff  = boardHand == InteractionHand.OFF_HAND;
+        boolean riding    = hoverboard.isRiding();
         if (activeMode == MODE_GT_ANCHOR) {
             applyGtPhysics(client, player, touchMain, touchOff,
                            swingMain, swingOff, headPos,
@@ -527,8 +536,10 @@ public class GorillaLocomotionHandler {
         // ---- PER-HAND SWING -> VELOCITY ----
         // Legacy swing → velocity per hand; everything after this (throw, gravity,
         // friction, wall/floor stickiness, jumping) is the legacy system.
-        Vec3 mainVel = processHand(client, mainHand, touchMain, swingMain, headPos, fallSpeed, topFaceMain);
-        Vec3 offVel  = processHand(client, offHand,  touchOff,  swingOff,  headPos, fallSpeed, topFaceOff);
+        Vec3 mainVel = boardMain ? holdingBoard(mainHand)
+                     : processHand(client, mainHand, touchMain, swingMain, headPos, fallSpeed, topFaceMain);
+        Vec3 offVel  = boardOff  ? holdingBoard(offHand)
+                     : processHand(client, offHand,  touchOff,  swingOff,  headPos, fallSpeed, topFaceOff);
 
         // SINGLE FLOOR GRIP (see the GT-mode note): keep only one floor hand — the one
         // CLOSEST to the floor (physically lower) — so a stray second floor touch can't
@@ -659,6 +670,10 @@ public class GorillaLocomotionHandler {
         boolean vanillaIce      = iceKeepVanilla > 0.0;
 
         // ---- APPLY ----
+        // Whether the velocity was SET this tick (grip or throw) rather than carried
+        // over through vanilla's drag — the hoverboard needs to know which.
+        boolean velocityFresh = anyGrip;
+
         if (anyGrip) {
             // While gripping (climbing OR sliding) you're in control — never take fall
             // damage from the descent. Resetting each tick means that if you LET GO,
@@ -845,7 +860,8 @@ public class GorillaLocomotionHandler {
             // leaving only g*0.08 net gravity. We only do this in the air (onGround
             // handles stopping the fall naturally) and only when g < 1.
             double g = MovementConfig.gravityMultiplier;
-            if (g < 1.0 && !player.onGround()) {
+            // (The hoverboard handles its own drag and gravity while riding.)
+            if (g < 1.0 && !player.onGround() && !riding) {
                 double counterGrav = 0.08 * (1.0 - g);
                 Vec3 v = player.getDeltaMovement();
                 player.setDeltaMovement(v.x, v.y + counterGrav, v.z);
@@ -860,6 +876,7 @@ public class GorillaLocomotionHandler {
                 }
                 player.setDeltaMovement(throwVel);
                 threw = true;
+                velocityFresh = true;
             }
 
             // GROUND FRICTION: damp horizontal speed when standing on the ground.
@@ -869,7 +886,7 @@ public class GorillaLocomotionHandler {
             //   Normal surface   → groundFriction × floorStickiness,
             //     floorStickiness 1.0 = full friction (stops fast)
             //     floorStickiness 0.0 = frictionless (same feel as ice)
-            if (!threw && player.onGround()) {
+            if (!threw && player.onGround() && !riding) {
                 double effectiveFriction = vanillaIce
                         ? iceKeepVanilla   // vanilla ice: slow decay (≈0.89) → skating
                         : onIce
@@ -901,7 +918,7 @@ public class GorillaLocomotionHandler {
             //   af=0.5  → compensate=0.91^(-0.5)≈1.048  (partial cancel — longer throws)
             //   af=0.0  → compensate=0.91^(-1) ≈1.099  (full cancel — throws carry forever)
             double af = MovementConfig.airFriction;
-            if (af < 1.0 && !player.onGround()) {
+            if (af < 1.0 && !player.onGround() && !riding) {
                 double compensate = Math.pow(0.91, af - 1.0);
                 Vec3 v = player.getDeltaMovement();
                 player.setDeltaMovement(v.x * compensate, v.y, v.z * compensate);
@@ -915,11 +932,19 @@ public class GorillaLocomotionHandler {
             // Skip the launch step boost on ice (the push-off path handles movement)
             // and skip it entirely if the blocking a block ahead is a barrier.
             if (MovementConfig.stepAssist && !player.onGround()
-                    && !onIce && !grabOnIce) {
+                    && !onIce && !grabOnIce && !riding) {
                 applyLaunchStepBoost(client, player);
             }
         }
         wasAnyGripping = anyGrip;
+
+        // ---- HOVERBOARD RIDE ----
+        // Layered on top of any free-hand push. Riding counts as "gripping" for fall
+        // damage, so the dedicated-server keepalive covers it too.
+        if (boardHand != null && hoverboard.apply(player, velocityFresh)) {
+            grippingThisTick = true;
+            suppressServerFall(client);
+        }
 
         } // end of speed-based physics (MODE_SPEED_SWING)
 
@@ -1580,6 +1605,12 @@ public class GorillaLocomotionHandler {
     // -----------------------------------------------------------------------
     // PER-HAND SWING  — returns the velocity (blocks/tick) this hand contributes
     // -----------------------------------------------------------------------
+
+    // The hand holding a hoverboard steers it and never grabs.
+    private static Vec3 holdingBoard(HandState state) {
+        state.release();
+        return Vec3.ZERO;
+    }
 
     private Vec3 processHand(Minecraft client, HandState state,
                               Vec3 touchHand, Vec3 swingHand, Vec3 headPos,

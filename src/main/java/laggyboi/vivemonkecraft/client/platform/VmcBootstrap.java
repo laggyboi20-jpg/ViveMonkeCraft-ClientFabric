@@ -11,7 +11,7 @@ import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 // =====================================================================
 //
 // The ONLY class that knows what a mod entry point looks like on this loader.
-// Everything it does is: register the keybind, register the /vmc command with
+// Everything it does is: register the keybind and items, register the /vmc command with
 // this loader's command event, and hand off to the shared VivemonkecraftClient.
 //
 // The NeoForge and Forge branches replace this file with an @Mod class that does
@@ -23,6 +23,7 @@ public final class VmcBootstrap implements ClientModInitializer {
     public void onInitializeClient() {
 
         VmcKeybinds.init();
+        VmcItems.init();
 
         // Fabric dispatches client commands with FabricClientCommandSource; the
         // shared tree is generic over the source type, so it slots straight in.

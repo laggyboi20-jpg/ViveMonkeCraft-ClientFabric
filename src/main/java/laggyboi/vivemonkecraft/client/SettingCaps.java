@@ -35,6 +35,9 @@ public final class SettingCaps {
     public static final double MAX_HAND_RADIUS  = 0.15; // handRadius (grab cube size)
     public static final double MIN_GRAVITY      = 1.0;  // gravityMultiplier (1.0 = no reduction)
     public static final double MIN_AIR_FRICTION = 0.8;  // airFriction (lower = less drag)
+    public static final double MAX_HOVER_SPEED  = 0.7;  // hoverMaxSpeed (blocks/tick)
+    public static final double MAX_HOVER_ACCEL  = 0.05; // hoverAccel (blocks/tick²)
+    public static final double MAX_HOVER_HEIGHT = 0.5;  // hoverHeight — hard limit, see hoverHeight()
 
     private SettingCaps() {}
 
@@ -107,6 +110,25 @@ public final class SettingCaps {
     /** airFriction, clamped from BELOW (less drag = longer throws). */
     public static double airFriction() {
         return capMin(MovementConfig.airFriction, MIN_AIR_FRICTION, ServerLimits.allowAirFrictionMin());
+    }
+
+    /** hoverMaxSpeed, capped, and never above the server's hard launch-speed limit. */
+    public static double hoverMaxSpeed() {
+        double capped = capMax(MovementConfig.hoverMaxSpeed, MAX_HOVER_SPEED, 0.0);
+        return ServerLimits.maxJumpSpeed(capped);
+    }
+
+    /** hoverAccel, capped. */
+    public static double hoverAccel() {
+        return capMax(MovementConfig.hoverAccel, MAX_HOVER_ACCEL, 0.0);
+    }
+
+    /**
+     * hoverHeight, clamped to 0..0.5 for EVERYONE (ops included): vanilla servers
+     * kick a player whose feet stay more than ~0.55 above any block for 4 s.
+     */
+    public static double hoverHeight() {
+        return Math.max(0.0, Math.min(MAX_HOVER_HEIGHT, MovementConfig.hoverHeight));
     }
 
     // -----------------------------------------------------------------------
