@@ -1798,6 +1798,7 @@ public class GorillaLocomotionHandler {
         // fights the climb. Vivecraft's own ladder climbing is a separate system and is
         // unaffected; floor-pushing on nearby solid blocks still works normally.
         return bs.is(Blocks.BARRIER)
+                //? if >=1.21.5
                 || bs.is(Blocks.LEAF_LITTER)
                 || bs.is(net.minecraft.tags.BlockTags.CLIMBABLE);
     }

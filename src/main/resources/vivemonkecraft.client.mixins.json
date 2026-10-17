@@ -14,8 +14,8 @@
     "TeleportTrackerMixin",
     "PlayerHitboxMixin",
     "PlayerModelMixin",
-    "PlayerRenderStateMixin",
-    "PlayerRendererMixin",
+    "RenderStateHooksMixin",
+    "RendererHooksMixin",
     "VrCameraHeightMixin"
   ],
   "injectors": {

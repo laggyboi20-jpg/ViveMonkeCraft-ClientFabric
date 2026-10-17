@@ -12,7 +12,10 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+//? if >=1.21.9 {
 import net.minecraft.world.entity.Avatar;
+//?} else
+/*import net.minecraft.client.player.AbstractClientPlayer;*/
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,7 +28,7 @@ import java.util.List;
 // still knows WHICH player is being drawn (the model only sees the state).
 // The set is fed by monke-server broadcasts + the local player's own toggle.
 @Mixin(AvatarRenderer.class)
-public class PlayerRendererMixin {
+public class RendererHooksMixin {
 
     // COSMETICS: add the cosmetic layer to every player renderer (normal + slim).
     @SuppressWarnings("unchecked")
@@ -35,9 +38,10 @@ public class PlayerRendererMixin {
                 new CosmeticLayer((RenderLayerParent<AvatarRenderState, net.minecraft.client.model.player.PlayerModel>) (Object) this));
     }
 
-    // 1.21.9 renamed PlayerRenderer -> AvatarRenderer and PlayerRenderState ->
-    // AvatarRenderState, and extractRenderState's first param is now the new
-    // net.minecraft.world.entity.Avatar superclass (Player extends Avatar).
+    // 1.21.9 renamed the player renderer and its render state to Avatar*, and
+    // extractRenderState's first param became the new Avatar superclass
+    // (Player extends Avatar). Before that it took an AbstractClientPlayer.
+    //? if >=1.21.9 {
     @Inject(
         method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
         at = @At("TAIL"),
@@ -45,6 +49,15 @@ public class PlayerRendererMixin {
     )
     private void vmc$markMonke(Avatar player, AvatarRenderState state,
                                 float partialTick, CallbackInfo ci) {
+    //?} else {
+    /*@Inject(
+        method = "extractRenderState(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V",
+        at = @At("TAIL"),
+        require = 0
+    )
+    private void vmc$markMonke(AbstractClientPlayer player, AvatarRenderState state,
+                                float partialTick, CallbackInfo ci) {
+    *///?}
         VmcMonkeRenderState s = (VmcMonkeRenderState) state;
         s.vmc$setMonke(MonkeModelClientSet.isMonke(player.getUUID()));
 

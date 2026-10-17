@@ -21,6 +21,14 @@ stonecutter parameters {
             replace("RenderType.entityCutoutNoCull(", "RenderTypes.entityCutout(")
         }
 
+        // 1.21.9 renamed the player renderer + render state to Avatar* and moved
+        // keybind categories to an enum.
+        string(current.parsed >= "1.21.9") {
+            replace("PlayerRenderState", "AvatarRenderState")
+            replace("PlayerRenderer", "AvatarRenderer")
+            replace("KeyMapping.CATEGORY_MISC", "KeyMapping.Category.MISC")
+        }
+
         // 26.1 renamed Fabric API classes to Mojang names.
         string(current.parsed >= "26.1") {
             replace("PayloadTypeRegistry.playS2C()", "PayloadTypeRegistry.clientboundPlay()")

@@ -1,8 +1,8 @@
 package laggyboi.vivemonkecraft.client;
 
 /**
- * Duck interface stitched onto vanilla's PlayerRenderState by
- * PlayerRenderStateMixin. Carries one flag from the renderer (which knows the
+ * Duck interface stitched onto vanilla's player render state by
+ * RenderStateHooksMixin. Carries one flag from the renderer (which knows the
  * player's UUID) to the model (which only sees the render state): should this
  * player be drawn with the monke model (no legs, shorter torso)?
  */

@@ -8,11 +8,11 @@ import org.spongepowered.asm.mixin.Unique;
 
 import java.util.List;
 
-// Stitches the monke-model flag onto vanilla's AvatarRenderState (1.21.9 renamed
-// PlayerRenderState -> AvatarRenderState) so the renderer (which knows the
+// Stitches the monke-model flag onto vanilla's player render state (renamed in
+// 1.21.9) so the renderer (which knows the
 // player) can hand it to the model (which doesn't).
 @Mixin(AvatarRenderState.class)
-public class PlayerRenderStateMixin implements VmcMonkeRenderState {
+public class RenderStateHooksMixin implements VmcMonkeRenderState {
 
     @Unique
     private boolean vmc$monke = false;

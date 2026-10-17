@@ -66,6 +66,9 @@ tasks {
         )
         inputs.properties(props)
         filesMatching("fabric.mod.json") { expand(props) }
+        // Fabric builds the mod's pack metadata itself, matched to each version;
+        // the checked-in pack.mcmeta (for the Forge-family loaders) only fits one.
+        exclude("pack.mcmeta")
     }
 
     withType<JavaCompile>().configureEach {
