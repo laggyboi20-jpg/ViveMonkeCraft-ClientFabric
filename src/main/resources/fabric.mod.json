@@ -20,7 +20,6 @@
     ]
   },
   "mixins": [
-    "vivemonkecraft.mixins.json",
     {
       "config": "vivemonkecraft.client.mixins.json",
       "environment": "client"

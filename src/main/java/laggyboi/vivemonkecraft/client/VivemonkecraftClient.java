@@ -87,7 +87,7 @@ public class VivemonkecraftClient {
     // The physics handler.
     private GorillaLocomotionHandler handler;
 
-    // Toggle keybind — UNBOUND by default (no key assigned out of the box).
+    // Toggle keybind (V) and preset-cycle keybind (B) by default.
     // Constructed and registered by VmcKeybinds (registration is loader-specific).
     // To toggle via Vivecraft radial menu: go to VR Settings -> Radial Menu and assign
     // the "ViveMonkeCraft: Toggle" keybind to a radial slot.
@@ -104,12 +104,6 @@ public class VivemonkecraftClient {
 
         instance = this;
         handler  = new GorillaLocomotionHandler();
-
-        // Register the per-frame hand marker renderer (replaces old particles).
-        HandMarkerRenderer.register();
-
-        // Register the camera stabilization vignette (motion-sickness reduction).
-        CameraStabilizationRenderer.register();
 
         // The 3D hoverboard drawn in hand (items/hoverboard.json points at it).
         HoverboardModel.register();
@@ -153,9 +147,11 @@ public class VivemonkecraftClient {
                                 false
                             );
                         }
-                    } else if (autoStarted && !enabled && MovementConfig.modToggled) {
+                    } else if (autoStarted && !enabled && MovementConfig.modToggled
+                            && VivecraftBridge.isVrActive()) {
                         // Authorization arrived AFTER the auto-start window closed
-                        // (slow connection) — turn the mod on now.
+                        // (slow connection) — turn the mod on now (VR only, same as
+                        // the headset watcher in onEndTick).
                         applyEnabled(true);
                     }
                 });
@@ -219,6 +215,7 @@ public class VivemonkecraftClient {
             lastMonkeModel    = false;
             wasInGui          = false;
             lastDimension     = null;
+            lastPlayerRef     = null;    // don't keep the old world alive via its player
             wallSlideSent     = false;   // next world starts with no pending grip state
             vrWasActive       = false;   // re-evaluate VR presence fresh next world
             MonkeModelClientSet.clear(); // stale legless flags don't carry over
