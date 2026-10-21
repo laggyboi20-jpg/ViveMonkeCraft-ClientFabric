@@ -176,17 +176,17 @@ public class VivemonkecraftClient {
             reg.serverbound(MonkeModelC2SPayload.ID, MonkeModelC2SPayload.STREAM_CODEC,
                     EmbeddedServerLogic::onMonkeModel);
 
-            // Wall slide: C2S keepalive telling monke-server we're gripping, so it zeroes
-            // our (server-authoritative) fall distance — the dedicated-server half of the
-            // no-fall-damage slide. Singleplayer/LAN host handles this in the handler by
-            // resetting the integrated server player directly, so it's dedicated-only and
-            // needs no handler on this side.
-            reg.serverboundNoHandler(WallSlideC2SPayload.ID, WallSlideC2SPayload.STREAM_CODEC);
+            // Wall slide: C2S keepalive telling the server we're gripping, so it zeroes
+            // our (server-authoritative) fall distance — the no-fall-damage slide for
+            // anyone who isn't the host. The host itself resets its integrated server
+            // player directly in the handler; LAN guests are handled by the host here.
+            reg.serverbound(WallSlideC2SPayload.ID, WallSlideC2SPayload.STREAM_CODEC,
+                    EmbeddedServerLogic::onWallSlide);
 
-            // Magma touch: C2S signal telling monke-server to apply hot-floor damage while
-            // a hand grips a magma block (server-authoritative, so dedicated-only —
-            // singleplayer hurts the integrated server player directly in the handler).
-            reg.serverboundNoHandler(MagmaTouchC2SPayload.ID, MagmaTouchC2SPayload.STREAM_CODEC);
+            // Magma touch: C2S signal asking the server to apply hot-floor damage while a
+            // hand grips a magma block (server-authoritative). Same split as wall slide.
+            reg.serverbound(MagmaTouchC2SPayload.ID, MagmaTouchC2SPayload.STREAM_CODEC,
+                    EmbeddedServerLogic::onMagmaTouch);
         });
 
         // Join/disconnect handlers for our own integrated server (LAN host role).

@@ -57,15 +57,6 @@ public final class VmcNet {
                 CustomPacketPayload.Type<T> id,
                 StreamCodec<? super FriendlyByteBuf, T> codec,
                 BiConsumer<ServerPlayer, T> handler);
-
-        /**
-         * Client -> server payload with NO handler on this side. Used by the client
-         * mod for packets only the separate server companion answers; the type still
-         * has to be registered so the codec exists for sending.
-         */
-        <T extends CustomPacketPayload> void serverboundNoHandler(
-                CustomPacketPayload.Type<T> id,
-                StreamCodec<? super FriendlyByteBuf, T> codec);
     }
 
     /** Called once from the bootstrap with every payload the mod uses. */
@@ -94,13 +85,6 @@ public final class VmcNet {
             PayloadTypeRegistry.serverboundPlay().register(id, codec);
             ServerPlayNetworking.registerGlobalReceiver(id,
                     (payload, context) -> handler.accept(context.player(), payload));
-        }
-
-        @Override
-        public <T extends CustomPacketPayload> void serverboundNoHandler(
-                CustomPacketPayload.Type<T> id,
-                StreamCodec<? super FriendlyByteBuf, T> codec) {
-            PayloadTypeRegistry.serverboundPlay().register(id, codec);
         }
     }
 
